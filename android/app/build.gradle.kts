@@ -6,16 +6,18 @@ plugins {
 }
 
 android {
-    namespace = "com.example.seaside_tasks"
-    compileSdk = flutter.compileSdkVersion
-    ndkVersion = flutter.ndkVersion
-
+    // ...
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
-        // flutter_local_notifications ke liye zaroori
-        isCoreLibraryDesugaringEnabled = true
     }
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17)
+    }
+}
 
     kotlinOptions {
         jvmTarget = JavaVersion.VERSION_17.toString()
