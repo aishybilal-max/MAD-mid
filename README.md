@@ -1,3 +1,10 @@
+<img width="1600" height="840" alt="ss7" src="https://github.com/user-attachments/assets/3ed801bd-62e8-4632-9e42-3ddbc655c7e0" />
+<img width="1600" height="840" alt="ss2" src="https://github.com/user-attachments/assets/6fc75e36-c1d7-43b1-ade3-550c3ca7d5d5" />
+<img width="1600" height="840" alt="ss3" src="https://github.com/user-attachments/assets/20e27781-f371-4bad-b8c6-ded14b6aa0f0" />
+<img width="1600" height="840" alt="ss4" src="https://github.com/user-attachments/assets/a1522429-b349-473d-a7b9-4454d2132e87" />
+<img width="1600" height="840" alt="ss5" src="https://github.com/user-attachments/assets/d15b3674-c017-4d58-9eb7-4fa01a8d37dc" />
+<img width="1600" height="840" alt="ss6" src="https://github.com/user-attachments/assets/8fae65e2-be7f-4318-a408-5374f5c136e0" />
+<img width="1600" height="840" alt="ss1" src="https://github.com/user-attachments/assets/451ea709-14d9-4fa0-b0cf-bc60211e607b" />
 # Seaside Tasks — Flutter Task Management App
 
 Sea-blue / swan-lake themed task manager with SQLite, repeat tasks, local notifications,
