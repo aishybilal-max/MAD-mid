@@ -7,7 +7,8 @@ import 'theme.dart';
 
 bool isDark(BuildContext c) => Theme.of(c).brightness == Brightness.dark;
 
-// ───────────────────────── background with twinkling stars ─────────────────────────
+// ───────────────────────── animated background ─────────────────────────
+// Photo that slowly breathes/drifts + blue-green wash + twinkling stars + rising bubbles.
 
 class SparkleBackground extends StatefulWidget {
   final String lightImage;
@@ -25,13 +26,16 @@ class SparkleBackground extends StatefulWidget {
 }
 
 class _SparkleBackgroundState extends State<SparkleBackground>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final AnimationController _c =
       AnimationController(vsync: this, duration: const Duration(seconds: 6))..repeat();
+  late final AnimationController _slow =
+      AnimationController(vsync: this, duration: const Duration(seconds: 40))..repeat();
 
   @override
   void dispose() {
     _c.dispose();
+    _slow.dispose();
     super.dispose();
   }
 
@@ -41,26 +45,52 @@ class _SparkleBackgroundState extends State<SparkleBackground>
     return Stack(
       fit: StackFit.expand,
       children: [
-        AnimatedSwitcher(
-          duration: const Duration(milliseconds: 500),
-          child: Image.asset(
-            dark ? widget.darkImage : widget.lightImage,
-            key: ValueKey('${dark}_${widget.lightImage}'),
-            fit: BoxFit.cover,
-            width: double.infinity,
-            height: double.infinity,
+        // photo: slow zoom + drift
+        ClipRect(
+          child: AnimatedBuilder(
+            animation: _slow,
+            builder: (_, child) {
+              final t = _slow.value * 2 * math.pi;
+              return Transform.translate(
+                offset: Offset(10 * math.sin(t), 6 * math.cos(t)),
+                child: Transform.scale(scale: 1.16 + 0.03 * math.sin(t), child: child),
+              );
+            },
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 600),
+              child: Image.asset(
+                dark ? widget.darkImage : widget.lightImage,
+                key: ValueKey('${dark}_${widget.lightImage}'),
+                fit: BoxFit.cover,
+                width: double.infinity,
+                height: double.infinity,
+              ),
+            ),
           ),
         ),
-        // soft veil so cards and text stay readable
+        // blue-green wash so glass + text stay readable
         DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
               colors: dark
-                  ? [C.night.withOpacity(0.78), C.night.withOpacity(0.92)]
-                  : [Colors.white.withOpacity(0.55), const Color(0xFFDDEFF5).withOpacity(0.82)],
+                  ? [
+                      C.night.withOpacity(0.70),
+                      C.navy.withOpacity(0.42),
+                      C.deepGreen.withOpacity(0.62),
+                    ]
+                  : [
+                      Colors.white.withOpacity(0.34),
+                      C.sky.withOpacity(0.20),
+                      C.seaGreen.withOpacity(0.34),
+                    ],
             ),
+          ),
+        ),
+        IgnorePointer(
+          child: RepaintBoundary(
+            child: CustomPaint(painter: _BubblePainter(_slow, dark)),
           ),
         ),
         IgnorePointer(
@@ -72,6 +102,56 @@ class _SparkleBackgroundState extends State<SparkleBackground>
       ],
     );
   }
+}
+
+class _BubblePainter extends CustomPainter {
+  final Animation<double> anim;
+  final bool dark;
+  static final _rnd = math.Random(21);
+  // x, size, phase, wobble, speed (integer => seamless loop)
+  static final List<List<double>> _b = List.generate(
+    20,
+    (_) => [
+      _rnd.nextDouble(),
+      3 + _rnd.nextDouble() * 9,
+      _rnd.nextDouble(),
+      0.01 + _rnd.nextDouble() * 0.03,
+      (1 + _rnd.nextInt(3)).toDouble(),
+    ],
+  );
+
+  _BubblePainter(this.anim, this.dark) : super(repaint: anim);
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    for (final b in _b) {
+      final p = (anim.value * b[4] + b[2]) % 1.0;
+      final y = size.height * (1.08 - p * 1.2);
+      final x = size.width * (b[0] + b[3] * math.sin(p * 4 * math.pi));
+      final fade = math.sin(p * math.pi).clamp(0.0, 1.0);
+      final c = Offset(x, y);
+      canvas.drawCircle(
+        c,
+        b[1],
+        Paint()
+          ..shader = RadialGradient(colors: [
+            Colors.white.withOpacity(0.55 * fade),
+            C.sky.withOpacity(0.10 * fade),
+          ]).createShader(Rect.fromCircle(center: c, radius: b[1])),
+      );
+      canvas.drawCircle(
+        c,
+        b[1],
+        Paint()
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.8
+          ..color = Colors.white.withOpacity(0.45 * fade),
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _BubblePainter old) => old.dark != dark;
 }
 
 class _StarPainter extends CustomPainter {
@@ -97,7 +177,7 @@ class _StarPainter extends CustomPainter {
     for (final s in _stars) {
       final t = (math.sin((anim.value + s[2]) * 2 * math.pi) + 1) / 2;
       final paint = Paint()
-        ..color = (dark ? Colors.white : C.ocean).withOpacity(0.10 + 0.55 * t)
+        ..color = (dark ? Colors.white : Colors.white).withOpacity(0.10 + 0.60 * t)
         ..style = PaintingStyle.fill;
       canvas.drawPath(_star(Offset(s[0] * size.width, s[1] * size.height), s[3] * (0.6 + 0.6 * t)), paint);
     }
@@ -145,7 +225,67 @@ class _PressableState extends State<Pressable> {
   }
 }
 
-/// Frosted-glass card that lifts and glows on hover.
+class _SlideGradient extends GradientTransform {
+  final double slide; // -1 … 1
+  const _SlideGradient(this.slide);
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) =>
+      Matrix4.translationValues(bounds.width * slide, 0, 0);
+}
+
+/// Glossy light band that sweeps diagonally across its parent every few seconds.
+/// Put it inside a Stack on top of a glass surface.
+class GlassShine extends StatefulWidget {
+  final double strength;
+  const GlassShine({super.key, this.strength = 0.30});
+
+  @override
+  State<GlassShine> createState() => _GlassShineState();
+}
+
+class _GlassShineState extends State<GlassShine> with SingleTickerProviderStateMixin {
+  late final AnimationController _c = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 7000),
+  )
+    ..value = math.Random().nextDouble() // so cards do not shine in sync
+    ..repeat();
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: AnimatedBuilder(
+        animation: _c,
+        builder: (_, __) {
+          final p = const Interval(0.0, 0.35, curve: Curves.easeInOut).transform(_c.value);
+          return DecoratedBox(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: const Alignment(-1, -0.5),
+                end: const Alignment(1, 0.5),
+                colors: [
+                  Colors.white.withOpacity(0),
+                  Colors.white.withOpacity(widget.strength),
+                  Colors.white.withOpacity(0),
+                ],
+                stops: const [0.38, 0.5, 0.62],
+                transform: _SlideGradient(-1.6 + 3.2 * p),
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+/// Transparent, shiny frosted-glass card. Lifts and glows on hover.
 class GlassCard extends StatefulWidget {
   final Widget child;
   final VoidCallback? onTap;
@@ -169,7 +309,7 @@ class _GlassCardState extends State<GlassCard> {
   @override
   Widget build(BuildContext context) {
     final dark = isDark(context);
-    final tint = widget.tint ?? (dark ? Colors.white : Colors.white);
+    final tint = widget.tint ?? C.ocean;
     final radius = BorderRadius.circular(26);
     return MouseRegion(
       cursor: widget.onTap == null ? MouseCursor.defer : SystemMouseCursors.click,
@@ -185,27 +325,184 @@ class _GlassCardState extends State<GlassCard> {
             borderRadius: radius,
             boxShadow: [
               BoxShadow(
-                color: (dark ? C.sky : C.ocean).withOpacity(_hover ? 0.38 : 0.12),
-                blurRadius: _hover ? 26 : 14,
-                offset: Offset(0, _hover ? 10 : 5),
+                color: (dark ? C.sky : C.navy).withOpacity(_hover ? 0.34 : 0.16),
+                blurRadius: _hover ? 30 : 22,
+                offset: Offset(0, _hover ? 14 : 9),
               ),
             ],
           ),
           child: ClipRRect(
             borderRadius: radius,
             child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-              child: Container(
-                padding: widget.padding,
+              filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+              child: Stack(
+                children: [
+                  Container(
+                    padding: widget.padding,
+                    decoration: BoxDecoration(
+                      borderRadius: radius,
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: dark
+                            ? [
+                                Colors.white.withOpacity(_hover ? 0.22 : 0.16),
+                                tint.withOpacity(0.12),
+                                Colors.white.withOpacity(0.05),
+                              ]
+                            : [
+                                Colors.white.withOpacity(_hover ? 0.60 : 0.46),
+                                tint.withOpacity(0.10),
+                                Colors.white.withOpacity(_hover ? 0.30 : 0.18),
+                              ],
+                      ),
+                      border: Border.all(
+                        color: Colors.white.withOpacity(_hover ? 0.85 : (dark ? 0.35 : 0.65)),
+                        width: 1.2,
+                      ),
+                    ),
+                    child: widget.child,
+                  ),
+                  // glossy top edge
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    top: 0,
+                    height: 46,
+                    child: IgnorePointer(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.white.withOpacity(dark ? 0.16 : 0.30),
+                              Colors.white.withOpacity(0),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const Positioned.fill(child: GlassShine()),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Fade + slide-up entrance. `index` staggers items in a list.
+class FadeSlideIn extends StatefulWidget {
+  final Widget child;
+  final int index;
+  const FadeSlideIn({super.key, required this.child, this.index = 0});
+
+  @override
+  State<FadeSlideIn> createState() => _FadeSlideInState();
+}
+
+class _FadeSlideInState extends State<FadeSlideIn> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 600));
+  late final Animation<double> _a = CurvedAnimation(parent: _c, curve: Curves.easeOutCubic);
+
+  @override
+  void initState() {
+    super.initState();
+    Future.delayed(Duration(milliseconds: 80 * widget.index.clamp(0, 8)), () {
+      if (mounted) _c.forward();
+    });
+  }
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return FadeTransition(
+      opacity: _a,
+      child: SlideTransition(
+        position: Tween(begin: const Offset(0, 0.12), end: Offset.zero).animate(_a),
+        child: widget.child,
+      ),
+    );
+  }
+}
+
+/// Gently "breathes" (scale pulse) - used on the + button.
+class Breathing extends StatefulWidget {
+  final Widget child;
+  const Breathing({super.key, required this.child});
+
+  @override
+  State<Breathing> createState() => _BreathingState();
+}
+
+class _BreathingState extends State<Breathing> with SingleTickerProviderStateMixin {
+  late final AnimationController _c =
+      AnimationController(vsync: this, duration: const Duration(milliseconds: 2400))
+        ..repeat(reverse: true);
+
+  @override
+  void dispose() {
+    _c.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: CurvedAnimation(parent: _c, curve: Curves.easeInOut),
+      builder: (_, child) => Transform.scale(scale: 1 + 0.05 * _c.value, child: child),
+      child: widget.child,
+    );
+  }
+}
+
+/// Glossy progress bar with a glow and a light streak on top.
+class GlossyBar extends StatelessWidget {
+  final double value; // 0..1
+  final Color color;
+  const GlossyBar({super.key, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 10,
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.22),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: Colors.white.withOpacity(0.30)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: TweenAnimationBuilder<double>(
+          tween: Tween(begin: 0, end: value.clamp(0.0, 1.0)),
+          duration: const Duration(milliseconds: 800),
+          curve: Curves.easeOutCubic,
+          builder: (_, v, __) => Align(
+            alignment: Alignment.centerLeft,
+            child: FractionallySizedBox(
+              widthFactor: v,
+              child: DecoratedBox(
                 decoration: BoxDecoration(
-                  borderRadius: radius,
-                  color: tint.withOpacity(dark ? (_hover ? 0.16 : 0.10) : (_hover ? 0.88 : 0.72)),
-                  border: Border.all(
-                    color: (dark ? C.sky : Colors.white).withOpacity(_hover ? 0.9 : 0.5),
-                    width: 1.2,
+                  gradient: LinearGradient(colors: [color, Color.lerp(color, C.seaGreen, 0.6)!]),
+                  boxShadow: [BoxShadow(color: color.withOpacity(0.6), blurRadius: 8)],
+                ),
+                child: Align(
+                  alignment: Alignment.topCenter,
+                  child: FractionallySizedBox(
+                    heightFactor: 0.4,
+                    child: ColoredBox(color: Colors.white.withOpacity(0.35)),
                   ),
                 ),
-                child: widget.child,
               ),
             ),
           ),

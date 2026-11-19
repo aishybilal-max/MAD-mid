@@ -68,10 +68,10 @@ class _HomeScreenState extends State<HomeScreen> {
   ];
 
   static const _bg = [
-    ('assets/images/gingham_blue.jpg', 'assets/images/swirl.jpg'),
-    ('assets/images/gingham_green.jpg', 'assets/images/butterfly.jpg'),
-    ('assets/images/foam.jpg', 'assets/images/umbrella.jpg'),
-    ('assets/images/sea_text.jpg', 'assets/images/swirl.jpg'),
+    ('assets/images/bg_pond.jpg', 'assets/images/bg_pond.jpg'),
+    ('assets/images/bg_forest.jpg', 'assets/images/bg_forest.jpg'),
+    ('assets/images/bg_pond.jpg', 'assets/images/bg_pond.jpg'),
+    ('assets/images/bg_forest.jpg', 'assets/images/bg_forest.jpg'),
   ];
 
   @override
@@ -97,12 +97,20 @@ class _HomeScreenState extends State<HomeScreen> {
         child: loaded
             ? AnimatedSwitcher(
                 duration: const Duration(milliseconds: 280),
+                transitionBuilder: (child, anim) => FadeTransition(
+                  opacity: anim,
+                  child: SlideTransition(
+                    position: Tween(begin: const Offset(0, 0.03), end: Offset.zero).animate(anim),
+                    child: child,
+                  ),
+                ),
                 child: KeyedSubtree(key: ValueKey(_tab), child: pages[_tab]),
               )
             : const Center(child: CircularProgressIndicator()),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      floatingActionButton: Pressable(
+      floatingActionButton: Breathing(
+        child: Pressable(
         hoverScale: 1.1,
         onTap: () => Navigator.push(
           context,
@@ -130,25 +138,43 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Icon(Icons.add_rounded, size: 34, color: dark ? C.night : Colors.white),
         ),
       ),
+      ),
       bottomNavigationBar: Padding(
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
         child: ClipRRect(
           borderRadius: BorderRadius.circular(32),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+            filter: ImageFilter.blur(sigmaX: 22, sigmaY: 22),
             child: Container(
               height: 72,
               decoration: BoxDecoration(
-                color: (dark ? C.navy : Colors.white).withOpacity(dark ? 0.55 : 0.8),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: dark
+                      ? [
+                          Colors.white.withOpacity(0.18),
+                          C.ocean.withOpacity(0.14),
+                          Colors.white.withOpacity(0.06),
+                        ]
+                      : [
+                          Colors.white.withOpacity(0.55),
+                          C.sky.withOpacity(0.14),
+                          Colors.white.withOpacity(0.25),
+                        ],
+                ),
                 borderRadius: BorderRadius.circular(32),
-                border: Border.all(color: Colors.white.withOpacity(dark ? 0.15 : 0.7)),
+                border: Border.all(color: Colors.white.withOpacity(dark ? 0.35 : 0.75)),
               ),
-              child: Row(children: [
-                _nav(0, scheme),
-                _nav(1, scheme),
-                const SizedBox(width: 64), // space for the + button
-                _nav(2, scheme),
-                _nav(3, scheme),
+              child: Stack(children: [
+                Row(children: [
+                  _nav(0, scheme),
+                  _nav(1, scheme),
+                  const SizedBox(width: 64), // space for the + button
+                  _nav(2, scheme),
+                  _nav(3, scheme),
+                ]),
+                const Positioned.fill(child: GlassShine(strength: 0.22)),
               ]),
             ),
           ),

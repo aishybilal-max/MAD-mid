@@ -88,19 +88,7 @@ class TaskCard extends StatelessWidget {
             const SizedBox(height: 12),
             Row(children: [
               Expanded(
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: TweenAnimationBuilder<double>(
-                    tween: Tween(begin: 0, end: task.progress),
-                    duration: const Duration(milliseconds: 500),
-                    builder: (_, v, __) => LinearProgressIndicator(
-                      value: v,
-                      minHeight: 9,
-                      color: catColor,
-                      backgroundColor: catColor.withOpacity(0.18),
-                    ),
-                  ),
-                ),
+                child: GlossyBar(value: task.progress, color: catColor),
               ),
               const SizedBox(width: 10),
               Text('${(task.progress * 100).round()}%',
@@ -135,8 +123,9 @@ class TaskCard extends StatelessWidget {
       ),
     );
 
-    if (!dismissible) return card;
-    return Dismissible(
+    if (!dismissible) return FadeSlideIn(child: card);
+    return FadeSlideIn(
+        child: Dismissible(
       key: ValueKey('task_${task.id}'),
       direction: DismissDirection.endToStart,
       background: Container(
@@ -176,7 +165,7 @@ class TaskCard extends StatelessWidget {
           ));
       },
       child: card,
-    );
+    ));
   }
 }
 
@@ -227,6 +216,7 @@ class _Pill extends StatelessWidget {
       decoration: BoxDecoration(
         color: color.withOpacity(0.16),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withOpacity(0.45)),
       ),
       child: Row(mainAxisSize: MainAxisSize.min, children: [
         Icon(icon, size: 14, color: color),

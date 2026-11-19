@@ -171,8 +171,8 @@ class _AddEditScreenState extends State<AddEditScreen> {
         ],
       ),
       body: SparkleBackground(
-        lightImage: 'assets/images/gingham_blue.jpg',
-        darkImage: 'assets/images/swirl.jpg',
+        lightImage: 'assets/images/bg_pond.jpg',
+        darkImage: 'assets/images/bg_pond.jpg',
         child: SafeArea(
           child: ListView(
             padding: const EdgeInsets.fromLTRB(20, 64, 20, 40),

@@ -78,7 +78,7 @@ ThemeData buildTheme(Brightness b) {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: dark ? Colors.white.withOpacity(0.07) : Colors.white.withOpacity(0.75),
+      fillColor: dark ? Colors.white.withOpacity(0.10) : Colors.white.withOpacity(0.40),
       labelStyle: TextStyle(color: scheme.onSurface.withOpacity(0.7)),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),

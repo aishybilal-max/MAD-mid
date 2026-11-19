@@ -132,3 +132,8 @@ Upload the `.apk` and the demo video to the repo (or as a GitHub Release).
   automatically resets to its next due date with subtasks un-ticked.
 * Notification sounds use system sounds (Default / Chime / Ringtone / Alarm / Silent).
   Android 13+ asks for notification permission on first launch.
+
+## UI refresh (glass theme)
+- Transparent, shiny glass cards + bottom bar (`GlassCard`, `GlassShine` in `lib/widgets.dart`)
+- Animated background: slow zoom/drift photo (`assets/images/bg_pond.jpg`, `bg_forest.jpg`), blue-green wash, rising bubbles, twinkling stars
+- Animations: staggered fade/slide-in task cards, breathing + button, glossy progress bars, tab fade/slide
